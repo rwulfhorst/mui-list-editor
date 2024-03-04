@@ -1,0 +1,35 @@
+{
+  "name": "mui-list-editor",
+  "version": "0.2.3",
+  "type": "module",
+  "description": "High-Order-Component that transform a controlled a React component with value={value} and onChange={(value)=>{}} properties into a List Editor Component with properties value={[value]} and onCHange={([value])=>{}} component",
+  "main": "./dist/",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rwulfhorst/mui-list-editor.git"
+  },
+  "keywords": [
+    "reactjs",
+    "react",
+    "HOC",
+    "mui",
+    "list-editor",
+    "form"
+  ],
+  "author": "Rodolfo Wulfhorst <rwulfhorst@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rwulfhorst/mui-list-editor/issues"
+  },
+  "homepage": "https://github.com/rwulfhorst/mui-list-editor#readme",
+  "dependencies": {
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.15.11",
+    "@mui/material": "^5.15.11",
+    "react": "^18.2.0"
+  }
+}
