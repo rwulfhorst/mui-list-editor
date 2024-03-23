@@ -46,7 +46,8 @@ const OptionalAccordion = ({ title = "Titulo", visible = true, children, summary
     if (!visible)
         return <>{children}</>
 
-    return <Accordion  defaultExpanded={true}>
+    return <Accordion  defaultExpanded={true}
+            slotProps={{ transition: { unmountOnExit: true } }}>
         <AccordionSummary expandIcon={<ExpandMore /> } >
             <Typography>{title}</Typography>
             {summaryControl ? summaryControl : null}
