@@ -4,6 +4,7 @@
   "type": "module",
   "description": "High-Order-Component that transform a controlled a React component with value={value} and onChange={(value)=>{}} properties into a List Editor Component with properties value={[value]} and onCHange={([value])=>{}} component",
   "main": "./dist/",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
