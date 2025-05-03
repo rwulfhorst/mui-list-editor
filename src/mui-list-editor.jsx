@@ -125,10 +125,11 @@ const ItemControls = ({
   prevText,
   addText,
   deleteText = "Excluir",
-  onSwap}) => {
+  onSwap,
+  onMove}) => {
   return (
     <div style={iconContainerStyle}>
-      <DraggerItem ndx={ndx}  onSwap={onSwap}/>
+      <DraggerItem ndx={ndx}  onSwap={onMove}/>
       {onUp &&
       <IconButton
         disabled={ndx === 0}
@@ -194,6 +195,17 @@ const withListEditor = (
       }
     };
 
+    const handleMove = (ndx1, ndx2) => {
+        debugger
+        let list = value.splice(ndx1, 1);
+        if (list.length) 
+            value.splice(ndx2, 0, list[0]);
+        value = [...value];
+        if (onChange) {
+          onChange(value);
+        }
+      };
+
     if (!(value instanceof Array)) throw new Error("Value should be an Array");
 
     return (
@@ -235,6 +247,7 @@ const withListEditor = (
                 onDelete={null}
                 addText={newItemText}
                 onSwap={handleSwap}
+                onMove={handleMove}
               />
                            </DroppableItem>
  
