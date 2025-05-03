@@ -1,12 +1,16 @@
 {
   "name": "mui-list-editor",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "type": "module",
   "description": "High-Order-Component that transform a controlled a React component with value={value} and onChange={(value)=>{}} properties into a List Editor Component with properties value={[value]} and onCHange={([value])=>{}} component",
   "main": "./dist/",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "example": "node test/example.jsx",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "repository": {
     "type": "git",
@@ -31,6 +35,15 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.11",
     "@mui/material": "^5.15.11",
-    "react": "^18.2.0"
+    "@mui/styles": "^6.4.11",
+    "react": "^18.2.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.4.1",
+    "vite": "^6.3.4",
+    "vitest": "^3.1.2"
   }
 }

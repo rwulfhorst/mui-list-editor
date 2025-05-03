@@ -1,6 +1,6 @@
 
 declare module "mui-list-editor" {
-    import React, { ElementType } from "react";
+    import React from "react";
 
     export interface ListEditorProps<T> {
         value: T[];
@@ -21,7 +21,7 @@ declare module "mui-list-editor" {
         defaultValue: ValueObject,
         useAccordion: BoolAutoValue,
         newItemText: string,
-        cbAccordionContent : CallbackAccordionContent
+        cbAccordionContent = CallbackAccordionContent
     ): React.ComponentType<ListEditorProps<T>>;
 
 }
