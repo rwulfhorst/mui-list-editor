@@ -12,6 +12,7 @@ import {
   AccordionSummary,
   Typography,
   AccordionDetails,
+  Divider,
 } from "@mui/material";
 import {
   ArrowCircleUp,
@@ -22,7 +23,6 @@ import {
 } from "@mui/icons-material";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-
 /*Para Memoizar o Item, usa a função sobre o componente antes de usar com withListEditor.
 Ex:
 
@@ -58,15 +58,29 @@ const DND_TYPE = "itemListEditor";
 const iconFontSize = "0";
 const iconContainerStyle = { display: "flex", flexFlow: "column" };
 
-const DroppableItem = ({ndx, children , style={}}) => {
-    const [collectedDrop, drop] = useDrop(() => ({
-        accept:DND_TYPE,
-        drop: (item)=>{
-          console.log("drop"+JSON.stringify(item))
-          return {ndx:ndx}
-        } 
-      }))
-  return <div style={style} ref={drop}>{children}</div>;
+const DroppableItem = ({ ndx, children, style = {} }) => {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: DND_TYPE,
+    drop: (item) => {
+      console.log("drop" + JSON.stringify(item));
+      return { ndx: ndx };
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+    hover: (item, monitor) => {
+      console.log(
+        "hover" + JSON.stringify(item) + "esta sobre" + JSON.stringify(ndx)
+      );
+    },
+  }));
+
+  return (
+    <div style={{ marginBottom: isOver ? "0px" : "0px" }} ref={drop}>{ndx}
+      {isOver ? <Divider color="primary" sx={{ margin: "0px" }} /> : null}
+      {children}
+    </div>
+  );
 };
 const OptionalAccordion = ({
   title = "Titulo",
@@ -90,8 +104,8 @@ const OptionalAccordion = ({
   );
 };
 
-const DraggerItem = ({ ndx, onSwap }) => {
-  const [collectedDrag, drag, dragPreview] = useDrag(() => ({
+const DraggableItem = ({ ndx, onMove, children }) => {
+  const [{ opacity, isDragging }, drag, dragPreview] = useDrag(() => ({
     type: DND_TYPE,
     item: { id: ndx },
     collect: (monitor) => ({
@@ -106,17 +120,59 @@ const DraggerItem = ({ ndx, onSwap }) => {
       console.log("dropped");
       console.log("endDrag" + JSON.stringify(item));
       console.log(`Arrastado ${ndx} sobre ${monitor.getDropResult()?.ndx}`);
-      onSwap(ndx, monitor.getDropResult()?.ndx);
+      onMove(ndx, monitor.getDropResult()?.ndx);
     },
   }));
 
   return (
-    <div ref={drag} style={{cursor: 'hand'} }>
-      <Menu />
-    </div>
+    <>
+      {isDragging ? (
+        <>
+          <div ref={dragPreview} style={{}}></div>
+        </>
+      ) : (
+        <div
+          ref={drag}
+          style={{
+            opactity: opacity,
+            cursor: "hand",
+            display: "flex",
+            flexFlow: "row",
+            flexWrap: "nowrap",
+          }}
+        >
+          <div style={{ flexGrow: 1 }}>{children}</div>
+          <div style={{ flexGrow: 0, cursor: "hand" }}>
+            <Menu />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
+function DroppableDelete() {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: DND_TYPE,
+    drop: (item) => {
+      console.log("drop" + JSON.stringify(item));
+      //      onDelete(item.id);
+      return { ndx: "delete" };
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+    hover: (item, monitor) => {
+      console.log("hover" + JSON.stringify(item) + "esta sobre delete");
+    },
+  }));
+
+  return (
+    <div ref={drop}>
+      <Delete color="secondary" />
+    </div>
+  );
+}
 const ItemControls = ({
   ndx,
   onAdd,
@@ -126,23 +182,26 @@ const ItemControls = ({
   addText,
   deleteText = "Excluir",
   onSwap,
-  onMove}) => {
+  onMove,
+}) => {
   return (
     <div style={iconContainerStyle}>
-      <DraggerItem ndx={ndx}  onSwap={onMove}/>
-      {onUp &&
-      <IconButton
-        disabled={ndx === 0}
-        title={prevText}
-        onClick={onUp}
-        size="small"
-      >
-        <ArrowCircleUp fontSize={iconFontSize} />
-      </IconButton>}
-      {onDelete &&      <IconButton title={deleteText} onClick={onDelete} size="small">
-        <Delete fontSize={iconFontSize} />
-      </IconButton>}
-
+      <DraggerItem ndx={ndx} onSwap={onMove} />
+      {onUp && (
+        <IconButton
+          disabled={ndx === 0}
+          title={prevText}
+          onClick={onUp}
+          size="small"
+        >
+          <ArrowCircleUp fontSize={iconFontSize} />
+        </IconButton>
+      )}
+      {onDelete && (
+        <IconButton title={deleteText} onClick={onDelete} size="small">
+          <Delete fontSize={iconFontSize} />
+        </IconButton>
+      )}
     </div>
   );
 };
@@ -150,24 +209,27 @@ const ItemControls = ({
  * withListEditor: Transforms a single editor into list editor based on MUI-Library
  *
  * @param {Element} ValuedEditorComponent A component with value and onChange((newValue)=>{}) props
- * @param {Object} defaultValue A JSON Object that initializes new Items
+ * @param {Object || Function} defaultValue A JSON Object that initializes new Items, or a function that returns a JSON Object with new value
  * @param {bool|string} useAccordion: true, false, 'auto'. 'auto' show as Accordion if more than 1 element
  * @param {string} newItemText: (options) Text show on Button thaht Inserts New Items
  * @param {function} cbAccordionContent: (optional) function, should return Accordion Content cbAccordoinContent((value,ndx)=>())
- * @returns
+ * @param {function} cbAccordionContent: (optional) function, should return Accordion Content cbAccordoinContent((value,ndx)=>())
+ * @param {string || Function:string}  key that contains unique ID of object Or a function that returns it
+* @returns
  */
 const withListEditor = (
   ValueEditorComponent,
   defaultValue = null,
   useAccordion = "auto",
   newItemText = "Inserir Item",
-  cbAccordionContent = null
+  cbAccordionContent = null,
+  valueIdKey = 'id'
 ) => {
   return ({ value = [], onChange = null, ...otherProps }) => {
     const handleAdd = () => {
       if (onChange) {
         var newJoinList = [...value];
-        newJoinList.push(defaultValue);
+        newJoinList.push(typeof defaultValue == "function" ? defaultValue() : defaultValue);
         onChange(newJoinList);
       }
     };
@@ -194,26 +256,41 @@ const withListEditor = (
         onChange(newJoinList);
       }
     };
-
     const handleMove = (ndx1, ndx2) => {
-        debugger
-        let list = value.splice(ndx1, 1);
-        if (list.length) 
-            value.splice(ndx2, 0, list[0]);
-        value = [...value];
-        if (onChange) {
-          onChange(value);
-        }
-      };
+      if (ndx2 === "delete") {
+        handleDelete(ndx1);
+        return;
+      }
+      if (ndx1 < ndx2 && ndx2 >= 0) ndx2--;
+      console.log("Movemdno" + ndx1 + "para" + ndx2);
+      let list = value.splice(ndx1, 1);
+      if (list.length) value.splice(ndx2, 0, list[0]);
+      value = [...value];
+      if (onChange) {
+        onChange(value);
+      }
+    };
+    const getKey = (val, ndx) => {
+      const res = 
+      ((typeof valueIdKey == "string")?val[valueIdKey]:
+      (typeof valueIdKey == "function")?valueIdKey(val, ndx):null);
+
+    if (!res) throw new Error("Can't find key in value. Make sure valueIdKey is set correctly.");
+    return res;
+    }
 
     if (!(value instanceof Array)) throw new Error("Value should be an Array");
-
     return (
       <>
         <DndProvider backend={HTML5Backend}>
           {value.map((val, ndx) => (
-              <DroppableItem key={ndx} ndx={ndx} style={{ display: "flex", width: "100%" }}>
-                <div style={{ flexGrow: 1, flexShrink: 1 }}>
+            <DroppableItem
+              key={getKey(val, ndx)}
+              ndx={ndx}
+              style={{ display: "flex", width: "100%" }}
+            >
+              <DraggableItem key={ndx} ndx={ndx} onMove={handleMove}>
+                <div style={{ flexGrow: 1, flexShrink: 1 }}>{ndx}
                   <OptionalAccordion
                     visible={
                       useAccordion === `auto`
@@ -238,19 +315,8 @@ const withListEditor = (
                     />
                   </OptionalAccordion>
                 </div>
-              <ItemControls
-                ndx={ndx}
-                onUp={null}
-                onAdd={() => {
-                  handleAdd();
-                }}
-                onDelete={null}
-                addText={newItemText}
-                onSwap={handleSwap}
-                onMove={handleMove}
-              />
-                           </DroppableItem>
- 
+              </DraggableItem>
+            </DroppableItem>
           ))}
 
           <Button
@@ -262,6 +328,7 @@ const withListEditor = (
             <Add fontSize={iconFontSize} />
             {newItemText}
           </Button>
+          <DroppableDelete />
         </DndProvider>
       </>
     );
