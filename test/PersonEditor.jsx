@@ -1,7 +1,6 @@
 
 export function PersonEditor({ value, onChange }) {
     const lbStyle = {display: 'inline-block', width: '150px', textAlign: 'right'};
-  
     return (<>
       <div>
         <label style={lbStyle}>Name</label>

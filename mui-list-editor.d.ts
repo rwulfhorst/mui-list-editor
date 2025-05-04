@@ -24,7 +24,8 @@ declare module "mui-list-editor" {
         useAccordion: BoolAutoValue,
         newItemText: string,
         cbAccordionContent : CallbackAccordionContent,
-        valueIdKey: string | ValueIdKeyFn
+        valueIdKey: string | ValueIdKeyFn,
+        DND_Type: string | null | undefined,
     ): React.ComponentType<ListEditorProps<T>>;
 
 }

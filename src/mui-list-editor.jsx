@@ -4,7 +4,7 @@
  * componente editor de Lista com propriedades value=[value] e onChange([newValue])
  */
 
-import React from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import {
   Button,
   IconButton,
@@ -21,8 +21,10 @@ import {
   ExpandMore,
   Menu,
 } from "@mui/icons-material";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { DndProvider, useDrag, useDragLayer, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { grey } from '@mui/material/colors';
+import { v4 as uuidv4 } from "uuid";
 /*Para Memoizar o Item, usa a função sobre o componente antes de usar com withListEditor.
 Ex:
 
@@ -54,29 +56,23 @@ const KanbanColumns = withListEditor(MemoizedKanbanColumn,
 
 }
 */
-const DND_TYPE = "itemListEditor";
-const iconFontSize = "0";
 const iconContainerStyle = { display: "flex", flexFlow: "column" };
 
-const DroppableItem = ({ ndx, children, style = {} }) => {
+const DroppableItem = ({ ndx, children, style = {}, DND_Type }) => {
   const [{ isOver }, drop] = useDrop(() => ({
-    accept: DND_TYPE,
-    drop: (item) => {
-      console.log("drop" + JSON.stringify(item));
+    accept: DND_Type,
+    drop: (item, monitor) => {
       return { ndx: ndx };
     },
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
     }),
     hover: (item, monitor) => {
-      console.log(
-        "hover" + JSON.stringify(item) + "esta sobre" + JSON.stringify(ndx)
-      );
     },
   }));
 
   return (
-    <div style={{ marginBottom: isOver ? "0px" : "0px" }} ref={drop}>{ndx}
+    <div style={{ marginBottom: isOver ? "0px" : "0px" }} ref={drop}>
       {isOver ? <Divider color="primary" sx={{ margin: "0px" }} /> : null}
       {children}
     </div>
@@ -104,9 +100,9 @@ const OptionalAccordion = ({
   );
 };
 
-const DraggableItem = ({ ndx, onMove, children }) => {
+const DraggableItem = ({ ndx, onMove, children, DND_Type }) => {
   const [{ opacity, isDragging }, drag, dragPreview] = useDrag(() => ({
-    type: DND_TYPE,
+    type: DND_Type,
     item: { id: ndx },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
@@ -114,11 +110,9 @@ const DraggableItem = ({ ndx, onMove, children }) => {
     }),
     end: (item, monitor) => {
       if (!monitor.didDrop()) {
-        console.log("not dropped");
+          console.log("not dropped");
         return;
       }
-      console.log("dropped");
-      console.log("endDrag" + JSON.stringify(item));
       console.log(`Arrastado ${ndx} sobre ${monitor.getDropResult()?.ndx}`);
       onMove(ndx, monitor.getDropResult()?.ndx);
     },
@@ -143,7 +137,7 @@ const DraggableItem = ({ ndx, onMove, children }) => {
         >
           <div style={{ flexGrow: 1 }}>{children}</div>
           <div style={{ flexGrow: 0, cursor: "hand" }}>
-            <Menu />
+            <Menu sx={{ color: grey[500] }} style={{fontColor:"red"}}/>
           </div>
         </div>
       )}
@@ -151,11 +145,10 @@ const DraggableItem = ({ ndx, onMove, children }) => {
   );
 };
 
-function DroppableDelete() {
+function DroppableDelete({DND_Type}) {
   const [{ isOver }, drop] = useDrop(() => ({
-    accept: DND_TYPE,
+    accept: DND_Type,
     drop: (item) => {
-      console.log("drop" + JSON.stringify(item));
       //      onDelete(item.id);
       return { ndx: "delete" };
     },
@@ -163,13 +156,12 @@ function DroppableDelete() {
       isOver: !!monitor.isOver(),
     }),
     hover: (item, monitor) => {
-      console.log("hover" + JSON.stringify(item) + "esta sobre delete");
     },
   }));
 
   return (
     <div ref={drop}>
-      <Delete color="secondary" />
+      <Delete color="secondary"  fontSize={isOver?"large":"small"}/>
     </div>
   );
 }
@@ -215,7 +207,7 @@ const ItemControls = ({
  * @param {function} cbAccordionContent: (optional) function, should return Accordion Content cbAccordoinContent((value,ndx)=>())
  * @param {function} cbAccordionContent: (optional) function, should return Accordion Content cbAccordoinContent((value,ndx)=>())
  * @param {string || Function:string}  key that contains unique ID of object Or a function that returns it
-* @returns
+ * @returns
  */
 const withListEditor = (
   ValueEditorComponent,
@@ -223,13 +215,25 @@ const withListEditor = (
   useAccordion = "auto",
   newItemText = "Inserir Item",
   cbAccordionContent = null,
-  valueIdKey = 'id'
+  valueIdKey = "id",
+  DND_Type = null
 ) => {
-  return ({ value = [], onChange = null, ...otherProps }) => {
+  DND_Type = DND_Type || uuidv4();
+  const WrappedComponent = ({ value = [], onChange = null, ...otherProps }) => {
+    const handleMoveRef = useRef();
+    const { isDragging } = useDragLayer((monitor) => {
+      return {
+      isDragging: monitor.getItemType() === DND_Type && !!monitor.isDragging(),
+      }});
+    useEffect(() => {
+    }, [value]);
+ 
     const handleAdd = () => {
       if (onChange) {
         var newJoinList = [...value];
-        newJoinList.push(typeof defaultValue == "function" ? defaultValue() : defaultValue);
+        newJoinList.push(
+          typeof defaultValue == "function" ? defaultValue() : defaultValue
+        );
         onChange(newJoinList);
       }
     };
@@ -256,41 +260,54 @@ const withListEditor = (
         onChange(newJoinList);
       }
     };
-    const handleMove = (ndx1, ndx2) => {
-      if (ndx2 === "delete") {
-        handleDelete(ndx1);
-        return;
-      }
-      if (ndx1 < ndx2 && ndx2 >= 0) ndx2--;
-      console.log("Movemdno" + ndx1 + "para" + ndx2);
-      let list = value.splice(ndx1, 1);
-      if (list.length) value.splice(ndx2, 0, list[0]);
-      value = [...value];
-      if (onChange) {
-        onChange(value);
-      }
-    };
-    const getKey = (val, ndx) => {
-      const res = 
-      ((typeof valueIdKey == "string")?val[valueIdKey]:
-      (typeof valueIdKey == "function")?valueIdKey(val, ndx):null);
+    const handleMove = useCallback(
+      (ndx1, ndx2) => {
+        if (ndx2 === "delete") {
+          handleDelete(ndx1);
+          return;
+        }
+        if (ndx1 < ndx2 && ndx2 >= 0) ndx2--;
+        const updatedValue = [...value];
+        const [movedItem] = updatedValue.splice(ndx1, 1); // Remove the item
+        if (movedItem) 
+          updatedValue.splice(ndx2, 0, movedItem); // Insert the item at the new position
+        
+        if (onChange) {
+          onChange(updatedValue);
+        }
+      }, [value, onChange]
+    );  
+    handleMoveRef.current = handleMove;
 
-    if (!res) throw new Error("Can't find key in value. Make sure valueIdKey is set correctly.");
-    return res;
-    }
+    const getKey = (val, ndx) => {
+      const res = typeof valueIdKey == "string"
+          ? val[valueIdKey] : typeof valueIdKey == "function"
+          ? valueIdKey(val, ndx) : null;
+      if (!res)
+        throw new Error("Can't find key in value. Make sure valueIdKey is set correctly.");
+      return res + "_" + ndx; //para garantir atualizacao do componente e evitar stale values de ndx no drop:  ()
+    };
 
     if (!(value instanceof Array)) throw new Error("Value should be an Array");
     return (
       <>
-        <DndProvider backend={HTML5Backend}>
           {value.map((val, ndx) => (
             <DroppableItem
               key={getKey(val, ndx)}
               ndx={ndx}
               style={{ display: "flex", width: "100%" }}
+              DND_Type={DND_Type}
             >
-              <DraggableItem key={ndx} ndx={ndx} onMove={handleMove}>
-                <div style={{ flexGrow: 1, flexShrink: 1 }}>{ndx}
+              <DraggableItem
+                key={getKey(val, ndx)}
+                ndx={ndx}
+                onMove={(ndx1, ndx2) => {
+                  handleMoveRef.current(ndx1, ndx2);
+                  //handleMove(ndx1, ndx2)
+                }}
+                DND_Type = {DND_Type}
+              >
+                <div style={{ flexGrow: 1, flexShrink: 1 }}>
                   <OptionalAccordion
                     visible={
                       useAccordion === `auto`
@@ -304,7 +321,7 @@ const withListEditor = (
                     }
                   >
                     <ValueEditorComponent
-                      key={ndx}
+                      key={getKey(val, ndx)}
                       value={val}
                       onChange={(val) => {
                         var newValues = [...value];
@@ -319,20 +336,31 @@ const withListEditor = (
             </DroppableItem>
           ))}
 
-          <Button
-            onClick={() => {
-              handleAdd();
-            }}
-            size="small"
-          >
-            <Add fontSize={iconFontSize} />
-            {newItemText}
-          </Button>
-          <DroppableDelete />
-        </DndProvider>
+       
+          {isDragging ?
+          <div style={{ display: "flex", width: "100%" }}>
+            <div style={{ flexGrow: 1, flexShrink: 1 }}/>
+            <DroppableDelete DND_Type={DND_Type} />
+          </div>:
+          <div style={{ display: "flex", width: "100%" , flexFlow: "column", flexWrap: "nowrap"}}>
+            <Button
+          onClick={() => {
+            handleAdd();
+          }}
+          size="small"
+        >
+          <Add />
+          {newItemText}
+        </Button>
+        </div>}
+ 
       </>
     );
+  
+  };
+  return WrappedComponent
+ 
   };
   //Wrapped Component deve ter atributos: value=[] e onChnge
-};
+  
 export default withListEditor;
