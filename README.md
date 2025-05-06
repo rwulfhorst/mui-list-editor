@@ -8,7 +8,7 @@ This package delivers the withListEditor higher-order component (HOC) that trans
 ```bash
 npm i mui-list-editor
 # or
-yarn add react-chartjs-2 chart.js
+yarn add mui-list-editor
 ```
 
 Let's say, you have a controlled editor, like
